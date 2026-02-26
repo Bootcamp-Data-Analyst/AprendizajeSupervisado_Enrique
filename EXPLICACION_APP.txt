@@ -1,0 +1,353 @@
+================================================================================
+EXPLICACIÓN DETALLADA DE app.py - Aplicación Streamlit para Predicción de Ictus
+================================================================================
+
+¿QUÉ ES app.py?
+===============
+app.py es un script de Python que crea una interfaz web interactiva usando Streamlit.
+Esta interfaz permite a los usuarios ingresar datos clínicos y obtener predicciones
+sobre el riesgo de ictus usando un modelo de Machine Learning entrenado.
+
+¿CÓMO EJECUTAR LA APP?
+======================
+1. Abre una terminal (PowerShell o CMD)
+2. Ve a la carpeta del proyecto:
+   cd C:\Users\USUARIO\Desktop\factoriaf5\p_final\AprendizajeSupervisado_Enrique
+
+3. Ejecuta el comando:
+   streamlit run app.py
+
+4. Abre el navegador en: http://localhost:8501
+
+================================================================================
+DESGLOSE DEL CÓDIGO LÍNEA POR LÍNEA
+================================================================================
+
+SECCIÓN 1: IMPORTACIONES
+========================
+"""
+import os
+import joblib
+import streamlit as st
+import pandas as pd
+import numpy as np
+"""
+
+Explicación:
+- import os              → Permite trabajar con el sistema de archivos (buscar archivos)
+- import joblib         → Carga el modelo entrenado (modelo.pkl)
+- import streamlit as st → Crea la interfaz web
+- import pandas as pd    → Manejo de datos (aunque aquí no se usa mucho)
+- import numpy as np     → Operaciones con arrays numéricos (para crear arrays de features)
+
+
+SECCIÓN 2: CONFIGURACIÓN DE LA PÁGINA
+======================================
+"""
+st.set_page_config(page_title="Predicción de Ictus", layout="centered")
+"""
+
+Explicación:
+- st.set_page_config()  → Configura la página de la app
+- page_title            → El título que aparece en la pestaña del navegador
+- layout="centered"     → Centra el contenido en la pantalla
+
+
+SECCIÓN 3: TÍTULO Y DESCRIPCIÓN
+================================
+"""
+st.title("🏥 Predicción de Ictus")
+st.write("""
+Esta aplicación utiliza un modelo de Machine Learning (Random Forest) 
+entrenado en datos clínicos para predecir la probabilidad de ictus.
+""")
+"""
+
+Explicación:
+- st.title()   → Muestra un título grande en la página
+- st.write()   → Muestra texto descriptivo explicando qué hace la app
+- El emoji 🏥 solo es decorativo
+
+
+SECCIÓN 4: VERIFICAR QUE EXISTE EL MODELO
+===========================================
+"""
+if not os.path.exists("modelo.pkl"):
+    st.error("""
+    ⚠️ Archivo 'modelo.pkl' no encontrado.
+    ...""")
+    st.stop()
+"""
+
+Explicación:
+- os.path.exists()  → Verifica si het archivo modelo.pkl existe en la carpeta
+- if not           → Si NO existe el archivo:
+  - st.error()     → Muestra un mensaje de error (en rojo)
+  - st.stop()      → Detiene la ejecución de la app
+  
+IMPORTANTE: El modelo debe existir para que la app funcione.
+Se crea ejecutando todas las celdas del notebook main.ipynb.
+
+
+SECCIÓN 5: CARGAR EL MODELO
+============================
+"""
+try:
+    model = joblib.load("modelo.pkl")
+    st.success("✅ Modelo cargado correctamente")
+except Exception as e:
+    st.error(f"❌ Error al cargar el modelo: {e}")
+    st.stop()
+"""
+
+Explicación:
+- try/except       → Manejo de errores (si algo falla, no se cuelga la app)
+- joblib.load()    → Carga el modelo guardado en modelo.pkl
+- st.success()     → Muestra un mensaje verde informando que todo va bien
+- st.error()       → Si hay error, muestra mensaje rojo
+
+
+SECCIÓN 6: CREAR FORMULARIO INTERACTIVO
+========================================
+"""
+with st.form("prediction_form"):
+    # Código aquí dentro va DENTRO del formulario
+    submitted = st.form_submit_button("🔮 Realizar Predicción")
+"""
+
+Explicación:
+- st.form()     → Crea un formulario (agrupa campos de entrada)
+- with          → Todo lo indentado dentro pertenece al formulario
+- form_submit_button() → Botón que envía el formulario
+
+
+SECCIÓN 7: CAMPOS DE ENTRADA - PARTE 1 (CLÍNICOS)
+==================================================
+"""
+st.write("**Información Clínica y Demográfica**")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    age = st.number_input("Edad (años)", min_value=0.0, max_value=120.0, value=50.0, step=1.0)
+with col2:
+    bmi = st.number_input("IMC (kg/m²)", min_value=10.0, max_value=60.0, value=25.0, step=0.1)
+with col3:
+    glucose = st.number_input("Glucosa promedio", min_value=0.0, max_value=300.0, value=100.0, step=1.0)
+"""
+
+Explicación:
+- st.write()        → Muestra un título para esta sección
+- st.columns(3)     → Divide la pantalla en 3 columnas
+- with col1/col2/col3 → Pone cada input en una columna diferente
+- st.number_input() → Campo numérico para ingresar números
+  - min_value      → Mínimo valor permitido
+  - max_value      → Máximo valor permitido
+  - value          → Valor por defecto (lo que muestra al iniciar)
+  - step           → Incremento cuando uso las flechas
+
+Las variables (age, bmi, glucose) guardan lo que el usuario ingresa.
+
+
+SECCIÓN 8: CAMPOS DE ENTRADA - PARTE 2 (CONDICIONES)
+=====================================================
+"""
+col1, col2, col3 = st.columns(3)
+with col1:
+    hypertension = st.selectbox("¿Hipertensión?", [0, 1], 
+                                format_func=lambda x: "No" if x == 0 else "Sí")
+with col2:
+    heart_disease = st.selectbox("¿Enfermedad cardíaca?", [0, 1], 
+                                 format_func=lambda x: "No" if x == 0 else "Sí")
+with col3:
+    gender_male = st.selectbox("Género", [0, 1], 
+                               format_func=lambda x: "Femenino" if x == 0 else "Masculino")
+"""
+
+Explicación:
+- st.selectbox()    → Dropdown (menú desplegable)
+- [0, 1]           → Las opciones disponibles (0 = No, 1 = Sí)
+- format_func      → Función que cambia cómo se ven las opciones
+  - lambda x       → Función pequeña que transforma x
+  - if x == 0      → Si es 0, muestra "No", si no muestra "Sí"
+
+El usuario ve "No" o "Sí", pero internamente se guarda 0 o 1 (como lo espera el modelo).
+
+
+SECCIÓN 9: CAMPOS DE ENTRADA - PARTE 3 (TRABAJO Y ESTADO CIVIL)
+===============================================================
+"""
+ever_married = st.selectbox("¿Alguna vez casado?", [0, 1])
+work_type = st.selectbox(
+    "Tipo de trabajo",
+    ["Govt_job", "Private", "Self-employed", "children"],
+    format_func=lambda x: {"Govt_job": "Sector público", "Private": "Privado", 
+                           "Self-employed": "Autónomo", "children": "Dependiente"}[x]
+)
+"""
+
+Explicación:
+- ever_married    → Selectbox con 0 (No) o 1 (Sí)
+- work_type       → Selectbox con 4 opciones (las que se ven corresponden a las etiquetas)
+- format_func     → Cambia cómo se ve cada opción
+  - {"Govt_job": "Sector público", ...}[x] → Busca en el diccionario y traduce
+
+
+SECCIÓN 10: CONSTRUIR EL ARRAY CON TODAS LAS FEATURES
+======================================================
+"""
+work_type_private = 1 if work_type == "Private" else 0
+work_type_self_employed = 1 if work_type == "Self-employed" else 0
+work_type_children = 1 if work_type == "children" else 0
+
+smoking_formerly = 1 if smoking_status == "formerly smoked" else 0
+smoking_never = 1 if smoking_status == "never smoked" else 0
+smoking_smokes = 1 if smoking_status == "smokes" else 0
+
+input_data = np.array([[
+    age,                      # Feature 1
+    hypertension,             # Feature 2
+    heart_disease,            # Feature 3
+    glucose,                  # Feature 4
+    bmi,                      # Feature 5
+    gender_male,              # Feature 6
+    ever_married,             # Feature 7
+    work_type_private,        # Feature 8
+    work_type_self_employed,  # Feature 9
+    work_type_children,       # Feature 10
+    residence_urban,          # Feature 11
+    smoking_formerly,         # Feature 12
+    smoking_never,            # Feature 13
+    smoking_smokes            # Feature 14
+]])
+"""
+
+Explicación:
+- Las líneas if/else crean variables binarias (0 o 1):
+  - Si work_type == "Private", entonces 1, si no 0
+  - Esto convierte variables categóricas a formato one-hot (dummies)
+
+- np.array([[...]]) crea un array NumPy con EXACTAMENTE 14 features
+  - IMPORTANTE: El modelo espera estos 14 valores en este ORDEN exacto
+  - Si faltan o están en otro orden, el modelo falla
+
+
+SECCIÓN 11: REALIZAR LA PREDICCIÓN
+===================================
+"""
+prediction = model.predict(input_data)[0]
+prediction_proba = model.predict_proba(input_data)[0]
+"""
+
+Explicación:
+- model.predict(input_data)      → Le dice al modelo "predice con estos datos"
+  - Devuelve [0] o [1] (sin riesgo o con riesgo)
+  - [0] al final toma el primer elemento (porque devuelve un array)
+
+- model.predict_proba(input_data) → Probabilidades para ambas clases
+  - Devuelve algo como [0.85, 0.15] = 85% sin riesgo, 15% con riesgo
+  - [0] al final: toma solo estas probabilidades
+
+
+SECCIÓN 12: MOSTRAR RESULTADOS
+===============================
+"""
+if prediction == 1:
+    st.warning(f"⚠️ **Riesgo ALTO de Ictus** (Probabilidad: {prediction_proba[1]:.2%})")
+else:
+    st.success(f"✅ **Riesgo BAJO de Ictus** (Probabilidad: {prediction_proba[1]:.2%})")
+
+col1, col2 = st.columns(2)
+with col1:
+    st.metric("Sin Ictus", f"{prediction_proba[0]:.2%}")
+with col2:
+    st.metric("Con Ictus", f"{prediction_proba[1]:.2%}")
+"""
+
+Explicación:
+- if prediction == 1   → Si el modelo predice riesgo alto (1)
+  - st.warning()      → Muestra en rojo/naranja
+  - f"..."            → f-string: inserta variables en el texto
+  - {prediction_proba[1]:.2%} → Muestra como porcentaje con 2 decimales
+
+- else: si prediction == 0 (sin riesgo)
+  - st.success()      → Muestra en verde
+
+- st.metric()         → Muestra números grandes y destacados
+  - prediction_proba[0] → Probabilidad de SIN ictus
+  - prediction_proba[1] → Probabilidad de CON ictus
+
+
+SECCIÓN 13: INFORMACIÓN FINAL
+==============================
+"""
+st.divider()
+st.info("""
+**ℹ️ Información Importante:**
+- Este modelo fue entrenado con datos específicos...
+""")
+"""
+
+Explicación:
+- st.divider()  → Dibuja una línea separadora
+- st.info()     → Muestra información en un recuadro azul
+
+
+================================================================================
+FLUJO COMPLETO DE LA APP
+================================================================================
+
+1. Usuario abre http://localhost:8501
+   ↓
+2. App carga el modelo.pkl
+   ↓
+3. App muestra el formulario con campos de entrada
+   ↓
+4. Usuario completa todos los campos
+   ↓
+5. Usuario hace clic en "🔮 Realizar Predicción"
+   ↓
+6. App convierte todos los datos a un array de 14 features
+   ↓
+7. App envía el array al modelo
+   ↓
+8. Modelo devuelve predicción (0 o 1) y probabilidades
+   ↓
+9. App muestra el resultado (Riesgo ALTO/BAJO) con porcentajes
+   ↓
+10. Usuario puede cambiar valores y hacer otra predicción
+
+
+================================================================================
+RESUMEN RÁPIDO DE COMANDOS STREAMLIT
+================================================================================
+
+st.title()          → Título grande
+st.write()          → Texto normal
+st.number_input()   → Campo para números
+st.selectbox()      → Menú desplegable
+st.columns()        → Divide pantalla en columnas
+st.form()           → Crea un formulario
+st.form_submit_button() → Botón para enviar formulario
+st.success()        → Mensaje verde
+st.error()          → Mensaje rojo
+st.warning()        → Mensaje naranja
+st.info()           → Información en recuadro azul
+st.metric()         → Número grande destacado
+st.divider()        → Línea separadora
+
+
+================================================================================
+¿CÓMO AGREGAR MÁS FEATURES?
+================================================================================
+
+1. Revisa en main.ipynb cuáles son TODOS los features después de get_dummies()
+2. Para cada nuevo feature, agrega en app.py:
+   - Un campo de entrada (st.number_input o st.selectbox)
+   - Una variable binaria (si es categórico)
+   - Agrega la variable al array input_data en el orden correcto
+3. IMPORTANTE: El orden y cantidad de features debe ser EXACTO al del modelo
+
+
+================================================================================
+FIN DE LA EXPLICACIÓN
+================================================================================
