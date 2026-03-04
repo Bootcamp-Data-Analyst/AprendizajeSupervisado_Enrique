@@ -201,7 +201,7 @@ Además, el proyecto fue **contenedorizado con Docker**, lo que permite:
 
 ## 👤 Autor
 
-**Sora**
+**Enrique**
 Data Analyst | Machine Learning
 
 ---
