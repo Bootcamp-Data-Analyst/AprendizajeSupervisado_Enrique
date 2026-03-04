@@ -1,74 +1,209 @@
-# Aprendizaje Supervisado - Predicción de Ictus
+# 🧠 Predicción de Ictus con Streamlit y Docker
 
-Resumen rápido
-- Dataset: `stroke_dataset.csv` (datos clínicos y demográficos).
-- Objetivo: explorar los datos (EDA), entrenar modelos supervisados y exponer una interfaz sencilla con Streamlit para realizar predicciones.
+Aplicación web desarrollada con **Streamlit** para la predicción de riesgo de ictus.  
+El proyecto está contenerizado usando **Docker** para facilitar su ejecución en cualquier entorno.
 
-## Exploratory Data Analysis (EDA)
+---
 
-- **Carga y revisión inicial**: se inspecciona el dataframe con `df.info()`, `df.describe()` y `df.isnull().sum()` para detectar problemas y tipos de datos.
-- **Distribución de la variable objetivo**: se calcula `value_counts()` y la proporción de clases para detectar desequilibrio (95% sin ictus, 5% con ictus).
-- **Limpieza básica**: se eliminan filas con `gender == 'Other'` para simplificar el análisis.
-- **Codificación**: variables categóricas convertidas a dummies con `pd.get_dummies(..., drop_first=True)`.
-- **Visualizaciones principales**:
-  - Boxplots de `age` y `avg_glucose_level` por clase `stroke`.
-  - `countplot` de `hypertension` por clase.
-  - `heatmap` de correlaciones entre variables numéricas.
-- **Desequilibrio de clases**: se aplica SMOTE en el conjunto de entrenamiento para balancear las clases antes de reentrenar modelos.
+## 🚀 Requisitos
 
-## Modelado
+- Tener instalado **Docker Desktop**
+- Tener Docker en ejecución
 
-- Se prueban modelos de **Regresión Logística** y **Random Forest**.
-- **Evaluación** mediante métricas como recall, matriz de confusión, reporte de clasificación y ROC AUC.
-- **Validación cruzada** (5-fold) y búsqueda de hiperparámetros (`GridSearchCV`) usando `recall` como métrica principal.
-- El mejor modelo final se guarda en `modelo.pkl` (archivo serializado con `joblib`) para uso por la interfaz.
+Desde la carpeta donde se encuentra el Dockerfile, ejecutar:
 
-## Cómo ejecutar
+docker build -t prediccion-ictus .
+2️⃣ Ejecutar el contenedor
+docker run -p 8501:8501 prediccion-ictus
+3️⃣ Abrir la aplicación
 
-### 1. Clonar el repositorio y situarse en la carpeta del proyecto:
+Abrir el navegador y acceder a:
 
-```powershell
-git clone https://github.com/Bootcamp-Data-Analyst/AprendizajeSupervisado_Enrique.git
-cd AprendizajeSupervisado_Enrique
-```
+http://localhost:8501
 
-### 2. Crear y activar un entorno virtual e instalar dependencias:
+Si todo está correcto, se mostrará la aplicación web.
+Aquí tienes el texto actualizado incluyendo el uso de Docker de forma profesional y coherente con el resto del documento:
 
-```powershell
-python -m venv venv
-venv\Scripts\activate
-python -m pip install --upgrade pip
-pip install -r requeriments.txt
-```
+---
 
-### 3. Ejecutar el notebook para reproducir el EDA y entrenar modelos:
+# 🧠 Predicción de Ictus (Stroke) — Proyecto de Aprendizaje Supervisado
 
-```powershell
-jupyter notebook main.ipynb
-```
-O abrir en VS Code y ejecutar las celdas secuencialmente.
+## 📌 Descripción del Proyecto
 
-### 4. Ejecutar la app Streamlit:
+Este proyecto tiene como objetivo predecir si un paciente está en riesgo de sufrir un **ictus (stroke)** a partir de variables demográficas y clínicas.
 
-Se debe extraer la sección Streamlit del notebook a un script `.py`:
+Se trata de un problema de **clasificación binaria supervisada**, donde el modelo debe identificar correctamente a los pacientes con mayor riesgo.
 
-```powershell
-jupyter nbconvert --to script main.ipynb
-# Editar main.py para dejar solo la parte de Streamlit y guardarlo como app.py
-streamlit run app.py
-```
+---
 
-## Notas importantes
+## 🎯 Problema de Negocio
 
-- El archivo `modelo.pkl` debe existir en la carpeta del proyecto para que la app Streamlit pueda cargarlo.
-- `streamlit run` no ejecuta notebooks directamente; por eso es necesario extraer la parte de Streamlit a un script `.py`.
-- Si el notebook no tiene `modelo.pkl`, ejecuta la última celda que lo genera.
+El ictus es una de las principales causas de muerte y discapacidad a nivel mundial. Detectar pacientes en riesgo de forma temprana puede ayudar a tomar medidas preventivas.
 
-## Dependencias principales
+El dataset presenta un fuerte desbalanceo:
 
-Ver `requeriments.txt` para la lista completa. Principales:
-- pandas, numpy, scikit-learn, scipy
-- matplotlib, seaborn (visualización)
-- optuna (optimización)
-- streamlit (interfaz web)
-- imbalanced-learn (SMOTE)
+* 95% → No ictus
+* 5% → Ictus
+
+Por lo tanto, el objetivo principal del modelo no es maximizar la accuracy, sino:
+
+> 🔎 Maximizar el **Recall de la clase positiva (stroke = 1)**
+> En problemas médicos, es más grave un falso negativo que un falso positivo.
+
+---
+
+## 📊 Descripción del Dataset
+
+**Variable objetivo:**
+
+* `stroke` → 0 (No ictus), 1 (Ictus)
+
+**Variables numéricas:**
+
+* `age`
+* `avg_glucose_level`
+* `bmi`
+
+**Variables binarias:**
+
+* `hypertension`
+* `heart_disease`
+
+**Variables categóricas:**
+
+* `gender`
+* `ever_married`
+* `work_type`
+* `Residence_type`
+* `smoking_status`
+
+---
+
+## 🔍 Análisis Exploratorio de Datos (EDA)
+
+Principales hallazgos:
+
+* Los pacientes con ictus tienden a tener mayor edad.
+* Los niveles elevados de glucosa se asocian con mayor incidencia de ictus.
+* La hipertensión y las enfermedades cardíacas muestran una relación clara con la variable objetivo.
+* El dataset está fuertemente desbalanceado, lo que requiere técnicas especiales de modelado.
+
+---
+
+## 🧹 Preprocesamiento de Datos
+
+Se realizaron las siguientes transformaciones:
+
+* Eliminación de categorías poco representativas (si aplica).
+* Imputación de valores nulos en `bmi` utilizando la mediana.
+* Codificación One-Hot para variables categóricas.
+* Separación en conjunto de entrenamiento y prueba con `stratify`.
+* Manejo del desbalanceo mediante:
+
+  * `class_weight="balanced"`
+  * Técnica de sobremuestreo SMOTE.
+
+---
+
+## 🤖 Modelos Implementados
+
+### 1️⃣ Regresión Logística (Modelo Base)
+
+Modelo inicial para establecer una línea base de rendimiento.
+
+### 2️⃣ Regresión Logística con balanceo
+
+Uso de `class_weight` para mejorar el recall de la clase minoritaria.
+
+### 3️⃣ Random Forest
+
+Modelo basado en árboles para capturar relaciones no lineales.
+
+### 4️⃣ Optimización de Hiperparámetros
+
+Uso de `GridSearchCV` con validación cruzada, optimizando la métrica **recall**.
+
+---
+
+## 📈 Evaluación del Modelo
+
+Métricas utilizadas:
+
+* Matriz de confusión
+* Precision
+* Recall (métrica principal)
+* F1-score
+* ROC-AUC
+* Validación cruzada
+
+Se priorizó mejorar la detección de casos positivos (ictus), minimizando falsos negativos.
+
+---
+
+## 🏆 Selección del Modelo Final
+
+El modelo final seleccionado:
+
+* Mejora significativamente el recall en la clase minoritaria.
+* Mantiene un buen equilibrio entre precision y recall.
+* Presenta bajo riesgo de sobreajuste.
+
+Las variables más importantes fueron:
+
+* Edad
+* Nivel promedio de glucosa
+* Hipertensión
+* Enfermedad cardíaca
+
+---
+
+## 🖥 Aplicación
+
+Se desarrolló una aplicación en **Streamlit** que permite:
+
+* Introducir datos de un paciente
+* Obtener predicción de riesgo
+* Visualizar probabilidad estimada
+
+Además, el proyecto fue **contenedorizado con Docker**, lo que permite:
+
+* Garantizar la reproducibilidad del entorno
+* Facilitar el despliegue en distintos sistemas
+* Simplificar la puesta en producción
+* Estandarizar dependencias y versiones
+
+
+---
+
+## 🛠 Tecnologías Utilizadas
+
+* Python
+* Pandas
+* NumPy
+* Scikit-learn
+* Imbalanced-learn (SMOTE)
+* Matplotlib / Seaborn
+* Streamlit
+* Docker
+
+---
+
+## 📚 Aprendizajes Clave
+
+* Manejo de datasets desbalanceados
+* Importancia del recall en modelos médicos
+* Interpretación de importancia de variables
+* Validación cruzada y ajuste de hiperparámetros
+* Desarrollo de un flujo completo de Machine Learning
+* Contenerización y despliegue con Docker
+
+---
+
+## 👤 Autor
+
+**Sora**
+Data Analyst | Machine Learning
+
+---
+
+
